@@ -2,8 +2,9 @@
 set -eo pipefail
 #
 # MongoDB Backup Script
-# VER. 0.20
+# VER. 0.3
 # More Info: http://github.com/micahwedemeyer/automongobackup
+# Modified : https://github.com/emadasefi/automongobackup/
 
 # Note, this is a lobotomized port of AutoMySQLBackup
 # (http://sourceforge.net/projects/automysqlbackup/) for use with
@@ -103,8 +104,14 @@ MONTHLYRETENTION=4
 # === ADVANCED OPTIONS ( Read the doc's below for details )===
 #=============================================================
 
-# Choose Compression type. (gzip or bzip2)
-COMP="gzip"
+# Choose Compression type. (gzip or zstd or bzip2)
+COMP="zstd"
+
+# zstd => CPU cores [1 ... 32]
+CPUc=3
+
+# zstd => Compression Level [1   ==>  19]-[Faster(Limited Compression) ==> Lower(Best Compression)]
+ComLevel=1
 
 # Choose if the uncompressed folder should be deleted after compression has completed
 CLEANUP="yes"
@@ -275,6 +282,10 @@ REQUIREDBAUTHDB="yes"
 # VER 0.2 - (2015-09-10)
 #       - Added configurable backup rentention options, even for
 #         monthly backups.
+#
+# VER 0.3 - (2025-04-16)
+#       - Added zstd algorithm(Fast Compression Algorithm) to compress backup files 
+         Requires zstd to be installed.
 #
 #=====================================================================
 #=====================================================================
@@ -508,9 +519,18 @@ compression () {
     if [ -n "$COMP" ]; then
         [ "$COMP" = "gzip" ] && SUFFIX=".tgz"
         [ "$COMP" = "bzip2" ] && SUFFIX=".tar.bz2"
+        [ "$COMP" = "zstd" ] && SUFFIX=".tar.zst"
         echo Tar and $COMP to "$file$SUFFIX"
         cd "$dir" || return 1
-        tar -cf - "$file" | $COMP --stdout | write_file "${file}${SUFFIX}"
+        
+		if [ "$COMP" = "gzip" ]; then
+			tar -cf - "$file" | $COMP --stdout | write_file "${file}${SUFFIX}"
+        fi	
+
+		if [ "$COMP" = "zstd" ]; then
+			tar -cf - "$file" | zstd --threads="$CPUc" -"$ComLevel" > "${file}${SUFFIX}"
+        fi		
+
         cd - >/dev/null || return 1
     else
         echo "No compression option set, check advanced settings"
