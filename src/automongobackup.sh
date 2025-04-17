@@ -276,6 +276,10 @@ REQUIREDBAUTHDB="yes"
 #       - Added configurable backup rentention options, even for
 #         monthly backups.
 #
+# VER 0.3 - (2025-04-16)
+#       - Added zstd algorithm(Fast Compression Algorithm) to compress backup files 
+#         Requires zstd to be installed.
+#
 #=====================================================================
 #=====================================================================
 #=====================================================================
